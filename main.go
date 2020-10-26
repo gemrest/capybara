@@ -12,44 +12,44 @@ import (
 	"os"
 	"strings"
 
-	"git.sr.ht/~adnano/gmi"
+	"git.sr.ht/~adnano/go-gemini"
 	"git.sr.ht/~sircmpwn/getopt"
 )
 
 var gemtextPage = template.Must(template.
 	New("gemtext").
 	Funcs(template.FuncMap{
-		"heading": func(line gmi.Line) *GemtextHeading {
+		"heading": func(line gemini.Line) *GemtextHeading {
 			switch l := line.(type) {
-			case gmi.LineHeading1:
+			case gemini.LineHeading1:
 				return &GemtextHeading{1, string(l)}
-			case gmi.LineHeading2:
+			case gemini.LineHeading2:
 				return &GemtextHeading{2, string(l)}
-			case gmi.LineHeading3:
+			case gemini.LineHeading3:
 				return &GemtextHeading{3, string(l)}
 			default:
 				return nil
 			}
 		},
-		"link": func(line gmi.Line) *gmi.LineLink {
+		"link": func(line gemini.Line) *gemini.LineLink {
 			switch l := line.(type) {
-			case gmi.LineLink:
+			case gemini.LineLink:
 				return &l
 			default:
 				return nil
 			}
 		},
-		"li": func(line gmi.Line) *gmi.LineListItem {
+		"li": func(line gemini.Line) *gemini.LineListItem {
 			switch l := line.(type) {
-			case gmi.LineListItem:
+			case gemini.LineListItem:
 				return &l
 			default:
 				return nil
 			}
 		},
-		"pre_toggle_on": func(ctx *GemtextContext, line gmi.Line) *gmi.LinePreformattingToggle {
+		"pre_toggle_on": func(ctx *GemtextContext, line gemini.Line) *gemini.LinePreformattingToggle {
 			switch l := line.(type) {
-			case gmi.LinePreformattingToggle:
+			case gemini.LinePreformattingToggle:
 				if ctx.Pre % 4 == 0 {
 					ctx.Pre += 1
 					return &l
@@ -60,9 +60,9 @@ var gemtextPage = template.Must(template.
 				return nil
 			}
 		},
-		"pre_toggle_off": func(ctx *GemtextContext, line gmi.Line) *gmi.LinePreformattingToggle {
+		"pre_toggle_off": func(ctx *GemtextContext, line gemini.Line) *gemini.LinePreformattingToggle {
 			switch l := line.(type) {
-			case gmi.LinePreformattingToggle:
+			case gemini.LinePreformattingToggle:
 				if ctx.Pre % 4 == 3 {
 					ctx.Pre += 1
 					return &l
@@ -73,25 +73,25 @@ var gemtextPage = template.Must(template.
 				return nil
 			}
 		},
-		"pre": func(line gmi.Line) *gmi.LinePreformattedText {
+		"pre": func(line gemini.Line) *gemini.LinePreformattedText {
 			switch l := line.(type) {
-			case gmi.LinePreformattedText:
+			case gemini.LinePreformattedText:
 				return &l
 			default:
 				return nil
 			}
 		},
-		"quote": func(line gmi.Line) *gmi.LineQuote {
+		"quote": func(line gemini.Line) *gemini.LineQuote {
 			switch l := line.(type) {
-			case gmi.LineQuote:
+			case gemini.LineQuote:
 				return &l
 			default:
 				return nil
 			}
 		},
-		"text": func(line gmi.Line) *gmi.LineText {
+		"text": func(line gemini.Line) *gemini.LineText {
 			switch l := line.(type) {
-			case gmi.LineText:
+			case gemini.LineText:
 				return &l
 			default:
 				return nil
@@ -265,14 +265,27 @@ dl dt {
 dl dt:not(:first-child) {
 	margin-top: 0.5rem;
 }
+
+a {
+	position: relative;
+}
+
+a:before {
+	content: '⇒';
+	color: #999;
+	text-decoration: none;
+	font-weight: bold;
+	position: absolute;
+	left: -1.25rem;
+}
 `
 
 type GemtextContext struct {
 	CSS      string
 	External bool
-	Lines    []gmi.Line
+	Lines    []gemini.Line
 	Pre      int
-	Resp     *gmi.Response
+	Resp     *gemini.Response
 	Title    string
 	URL      *url.URL
 }
@@ -282,10 +295,10 @@ type GemtextHeading struct {
 	Text  string
 }
 
-func proxyGemini(req gmi.Request, external bool,
+func proxyGemini(req gemini.Request, external bool,
 	w http.ResponseWriter, r *http.Request) {
-	client := gmi.Client{
-		TrustCertificate: func(_ string, _ *x509.Certificate, _ *gmi.KnownHosts) error {
+	client := gemini.Client{
+		TrustCertificate: func(_ string, _ *x509.Certificate, _ *gemini.KnownHosts) error {
 			return nil
 		},
 	}
@@ -353,17 +366,17 @@ func proxyGemini(req gmi.Request, external bool,
 	}
 
 	w.Header().Add("Content-Type", "text/html")
-	text := gmi.Parse(bytes.NewReader(resp.Body))
+	text := gemini.Parse(bytes.NewReader(resp.Body))
 	ctx := &GemtextContext{
 		CSS:      defaultCSS,
 		External: external,
-		Lines:    []gmi.Line(text),
+		Lines:    []gemini.Line(text),
 		Resp:     resp,
 		Title:    req.URL.Host + " " + req.URL.Path,
 		URL:      u,
 	}
 	for _, line := range text {
-		if h, ok := line.(gmi.LineHeading1); ok {
+		if h, ok := line.(gemini.LineHeading1); ok {
 			ctx.Title = string(h)
 			break
 		}
@@ -415,7 +428,7 @@ func main() {
 			return
 		}
 
-		req := gmi.Request{}
+		req := gemini.Request{}
 		req.URL = &url.URL{}
 		req.URL.Scheme = root.Scheme
 		req.URL.Host = root.Host
@@ -435,7 +448,7 @@ func main() {
 		if len(path) != 4 {
 			path = append(path, "")
 		}
-		req := gmi.Request{}
+		req := gemini.Request{}
 		req.URL, err = url.Parse(fmt.Sprintf("gemini://%s/%s", path[2], path[3]))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

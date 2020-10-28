@@ -246,6 +246,19 @@ li {
 	padding: 0;
 }
 
+a {
+	position: relative;
+}
+
+a:before {
+	content: '⇒';
+	color: #999;
+	text-decoration: none;
+	font-weight: bold;
+	position: absolute;
+	left: -1.25rem;
+}
+
 pre {
 	background-color: #eee;
 	margin: 0 -1rem;
@@ -258,25 +271,16 @@ details:not([open]) summary a {
 	color: gray;
 }
 
+details summary a:before {
+	display: none;
+}
+
 dl dt {
 	font-weight: bold;
 }
 
 dl dt:not(:first-child) {
 	margin-top: 0.5rem;
-}
-
-a {
-	position: relative;
-}
-
-a:before {
-	content: '⇒';
-	color: #999;
-	text-decoration: none;
-	font-weight: bold;
-	position: absolute;
-	left: -1.25rem;
 }
 `
 

@@ -246,6 +246,10 @@ li {
 	padding: 0;
 }
 
+li:not(:last-child) {
+	margin-bottom: 1rem;
+}
+
 a {
 	position: relative;
 }

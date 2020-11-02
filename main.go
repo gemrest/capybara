@@ -286,6 +286,29 @@ dl dt {
 dl dt:not(:first-child) {
 	margin-top: 0.5rem;
 }
+
+@media(prefers-color-scheme:dark) {
+	html {
+		background-color: #111;
+		color: #eee;
+	}
+
+	blockquote {
+		background-color: #000;
+	}
+
+	pre {
+		background-color: #222;
+	}
+	
+	a {
+		color: #0087BD;
+	}
+
+	a:visited {
+		color: #333399;
+	}
+}
 `
 
 type GemtextContext struct {

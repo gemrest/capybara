@@ -338,7 +338,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	resp, err := client.Do(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
-		w.Write([]byte(fmt.Sprintf("Gateway error: %v", err)))
+		fmt.Fprintf(w, "Gateway error: %v", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -346,33 +346,25 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	switch resp.Status {
 	case 20:
 		break // OK
-	case 30:
-	case 31:
+	case 30, 31:
 		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte(fmt.Sprintf("This URL redirects to %s", resp.Meta)))
+		fmt.Fprintf(w, "This URL redirects to %s", resp.Meta)
 		return
-	case 40:
-	case 41:
-	case 42:
-	case 43:
-	case 44:
+	case 40, 41, 42, 43, 44:
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte(fmt.Sprintf("The remote server returned %d: %s", resp.Status, resp.Meta)))
+		fmt.Fprintf(w, "The remote server returned %d: %s", resp.Status, resp.Meta)
 		return
-	case 50:
-	case 51:
+	case 50, 51:
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(fmt.Sprintf("The remote server returned %d: %s", resp.Status, resp.Meta)))
+		fmt.Fprintf(w, "The remote server returned %d: %s", resp.Status, resp.Meta)
 		return
-	case 52:
-	case 53:
-	case 59:
+	case 52, 53, 59:
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte(fmt.Sprintf("The remote server returned %d: %s", resp.Status, resp.Meta)))
+		fmt.Fprintf(w, "The remote server returned %d: %s", resp.Status, resp.Meta)
 		return
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte(fmt.Sprintf("Proxy does not understand Gemini response status %d", resp.Status)))
+		fmt.Fprintf(w, "Proxy does not understand Gemini response status %d", resp.Status)
 		return
 	}
 
@@ -380,7 +372,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	m, _, err := mime.ParseMediaType(resp.Meta)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
-		w.Write([]byte(fmt.Sprintf("Gateway error: %v", err)))
+		fmt.Fprintf(w, "Gateway error: %v", err)
 		return
 	}
 
@@ -414,7 +406,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	err = gemtextPage.Execute(w, ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf("%v", err)))
+		fmt.Fprintf(w, "%v", err)
 		return
 	}
 }

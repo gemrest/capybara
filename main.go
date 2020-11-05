@@ -1,16 +1,16 @@
 package main
 
 import (
-	"bytes"
-	"crypto/x509"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"mime"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"git.sr.ht/~adnano/go-gemini"
 	"git.sr.ht/~sircmpwn/getopt"
@@ -50,7 +50,7 @@ var gemtextPage = template.Must(template.
 		"pre_toggle_on": func(ctx *GemtextContext, line gemini.Line) *gemini.LinePreformattingToggle {
 			switch l := line.(type) {
 			case gemini.LinePreformattingToggle:
-				if ctx.Pre % 4 == 0 {
+				if ctx.Pre%4 == 0 {
 					ctx.Pre += 1
 					return &l
 				}
@@ -63,7 +63,7 @@ var gemtextPage = template.Must(template.
 		"pre_toggle_off": func(ctx *GemtextContext, line gemini.Line) *gemini.LinePreformattingToggle {
 			switch l := line.(type) {
 			case gemini.LinePreformattingToggle:
-				if ctx.Pre % 4 == 3 {
+				if ctx.Pre%4 == 3 {
 					ctx.Pre += 1
 					return &l
 				}
@@ -102,19 +102,16 @@ var gemtextPage = template.Must(template.
 			if err != nil {
 				return template.URL("error")
 			}
-			if u.Scheme == "" {
-				return template.URL(s)
-			}
-			if u.Scheme == "gemini" {
-				if u.Host != ctx.URL.Host {
+			u = ctx.URL.ResolveReference(u)
+
+			if u.Scheme == "" || u.Scheme == "gemini" {
+				if u.Host != ctx.Root.Host {
 					u.Path = fmt.Sprintf("/x/%s%s", u.Host, u.Path)
-					u.Host = ""
 				}
 				u.Scheme = ""
 				u.Host = ""
-				return template.URL(u.String())
 			}
-			return template.URL(s)
+			return template.URL(u.String())
 		},
 		"safeCSS": func(s string) template.CSS {
 			return template.CSS(s)
@@ -319,6 +316,7 @@ type GemtextContext struct {
 	Resp     *gemini.Response
 	Title    string
 	URL      *url.URL
+	Root     *url.URL
 }
 
 type GemtextHeading struct {
@@ -326,28 +324,24 @@ type GemtextHeading struct {
 	Text  string
 }
 
-func proxyGemini(req gemini.Request, external bool,
+func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	w http.ResponseWriter, r *http.Request) {
 	client := gemini.Client{
-		TrustCertificate: func(_ string, _ *x509.Certificate, _ *gemini.KnownHosts) error {
-			return nil
-		},
-	}
-	u := &url.URL{}
-	*u = *req.URL
-	if !strings.Contains(req.URL.Host, ":") {
-		req.URL.Host = req.URL.Host + ":1965"
-	}
-	if !strings.Contains(req.Host, ":") {
-		req.Host = req.Host + ":1965"
+		Timeout:           30 * time.Second,
+		InsecureSkipTrust: true,
 	}
 
-	resp, err := client.Send(&req)
+	if h := (url.URL{Host: req.Host}); h.Port() == "" {
+		req.Host += ":1965"
+	}
+
+	resp, err := client.Do(&req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		w.Write([]byte(fmt.Sprintf("Gateway error: %v", err)))
 		return
 	}
+	defer resp.Body.Close()
 
 	switch resp.Status {
 	case 20:
@@ -392,26 +386,31 @@ func proxyGemini(req gemini.Request, external bool,
 
 	if m != "text/gemini" {
 		w.Header().Add("Content-Type", resp.Meta)
-		w.Write(resp.Body)
+		io.Copy(w, resp.Body)
 		return
 	}
 
 	w.Header().Add("Content-Type", "text/html")
-	text := gemini.Parse(bytes.NewReader(resp.Body))
 	ctx := &GemtextContext{
 		CSS:      defaultCSS,
 		External: external,
-		Lines:    []gemini.Line(text),
 		Resp:     resp,
 		Title:    req.URL.Host + " " + req.URL.Path,
-		URL:      u,
+		URL:      req.URL,
+		Root:     root,
 	}
-	for _, line := range text {
-		if h, ok := line.(gemini.LineHeading1); ok {
-			ctx.Title = string(h)
-			break
+
+	var title bool
+	gemini.ParseLines(resp.Body, func(line gemini.Line) {
+		ctx.Lines = append(ctx.Lines, line)
+		if !title {
+			if h, ok := line.(gemini.LineHeading1); ok {
+				ctx.Title = string(h)
+				title = true
+			}
 		}
-	}
+	})
+
 	err = gemtextPage.Execute(w, ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -465,7 +464,7 @@ func main() {
 		req.URL.Host = root.Host
 		req.URL.Path = r.URL.Path
 		req.Host = root.Host
-		proxyGemini(req, false, w, r)
+		proxyGemini(req, false, root, w, r)
 	}))
 
 	http.Handle("/x/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -488,7 +487,7 @@ func main() {
 		}
 		req.Host = path[2]
 		log.Printf("%s (external) %s%s", r.Method, path[2], path[3])
-		proxyGemini(req, true, w, r)
+		proxyGemini(req, true, root, w, r)
 	}))
 
 	log.Printf("HTTP server listening on %s", bind)

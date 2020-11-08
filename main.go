@@ -215,6 +215,33 @@ var gemtextPage = template.Must(template.
 </details>
 `))
 
+var inputPage = template.Must(template.
+	New("input").
+	Funcs(template.FuncMap{
+		"safeCSS": func(s string) template.CSS {
+			return template.CSS(s)
+		},
+	}).
+	Parse(`<!doctype html>
+<html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+{{- if .CSS }}
+<style>
+{{.CSS | safeCSS}}
+</style>
+{{- end }}
+<title>{{.Prompt}}</title>
+<form>
+	<label for="input">{{.Prompt}}</label>
+	{{ if .Secret }}
+	<input type="password" id="input" name="q" />
+	{{ else }}
+	<input type="text" id="input" name="q" />
+	{{ end }}
+</form>
+`))
+
 // TODO: let user customize this
 const defaultCSS = `html {
 	font-family: sans-serif;
@@ -306,6 +333,27 @@ dl dt:not(:first-child) {
 		color: #333399;
 	}
 }
+
+label {
+	display: block;
+	font-weight: bold;
+	margin-bottom: 0.5rem;
+}
+
+input {
+	display: block;
+	border: 1px solid #888;
+	padding: .375rem;
+	line-height: 1.25rem;
+	transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+	width: 100%;
+}
+
+input:focus {
+	outline: 0;
+	border-color: #80bdff;
+	box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
 `
 
 type GemtextContext struct {
@@ -317,6 +365,13 @@ type GemtextContext struct {
 	Title    string
 	URL      *url.URL
 	Root     *url.URL
+}
+
+type InputContext struct {
+	CSS    string
+	Prompt string
+	Secret bool
+	URL    *url.URL
 }
 
 type GemtextHeading struct {
@@ -344,11 +399,41 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	defer resp.Body.Close()
 
 	switch resp.Status {
+	case 10, 11:
+		w.Header().Add("Content-Type", "text/html")
+		err = inputPage.Execute(w, &InputContext{
+			CSS:    defaultCSS,
+			Prompt: resp.Meta,
+			Secret: resp.Status == 11,
+			URL:    req.URL,
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf("%v", err)))
+		}
+		return
 	case 20:
 		break // OK
 	case 30, 31:
-		w.WriteHeader(http.StatusNotImplemented)
-		fmt.Fprintf(w, "This URL redirects to %s", resp.Meta)
+		to, err := url.Parse(resp.Meta)
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte(fmt.Sprintf("Gateway error: bad redirect %v", err)))
+		}
+		next := req.URL.ResolveReference(to)
+		if next.Scheme != "gemini" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(fmt.Sprintf("This page is redirecting you to %s", next.String())))
+			return
+		}
+		next.Host = r.URL.Host
+		if external {
+			next.Path = fmt.Sprintf("/x/%s/%s", next.Host, next.Path)
+		}
+		next.Scheme = r.URL.Scheme
+		w.Header().Add("Location", next.String())
+		w.WriteHeader(http.StatusFound)
+		w.Write([]byte("Redirecting to " + next.String()))
 		return
 	case 40, 41, 42, 43, 44:
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -372,7 +457,8 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	m, _, err := mime.ParseMediaType(resp.Meta)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
-		fmt.Fprintf(w, "Gateway error: %v", err)
+		w.Write([]byte(fmt.Sprintf("Gateway error: %d %s: %v",
+			resp.Status, resp.Meta, err)))
 		return
 	}
 
@@ -456,6 +542,10 @@ func main() {
 		req.URL.Host = root.Host
 		req.URL.Path = r.URL.Path
 		req.Host = root.Host
+		q := r.URL.Query()
+		if x, ok := q["q"]; ok {
+			req.URL.RawQuery = x[0]
+		}
 		proxyGemini(req, false, root, w, r)
 	}))
 

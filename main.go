@@ -232,7 +232,7 @@ var inputPage = template.Must(template.
 </style>
 {{- end }}
 <title>{{.Prompt}}</title>
-<form>
+<form method="POST">
 	<label for="input">{{.Prompt}}</label>
 	{{ if .Secret }}
 	<input type="password" id="input" name="q" />
@@ -523,6 +523,19 @@ func main() {
 	}
 
 	http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			r.ParseForm()
+			if q, ok := r.Form["q"]; !ok {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Bad request"))
+			} else {
+				w.Header().Add("Location", "?" + q[0])
+				w.WriteHeader(http.StatusFound)
+				w.Write([]byte("Redirecting"))
+			}
+			return
+		}
+
 		log.Printf("%s %s", r.Method, r.URL.Path)
 		if r.Method != "GET" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -542,12 +555,7 @@ func main() {
 		req.URL.Host = root.Host
 		req.URL.Path = r.URL.Path
 		req.Host = root.Host
-		q := r.URL.Query()
-		if x, ok := q["q"]; ok {
-			req.URL.RawQuery = x[0]
-		} else {
-			req.URL.RawQuery = r.URL.RawQuery
-		}
+		req.URL.RawQuery = r.URL.RawQuery
 		proxyGemini(req, false, root, w, r)
 	}))
 

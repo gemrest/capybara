@@ -545,6 +545,8 @@ func main() {
 		q := r.URL.Query()
 		if x, ok := q["q"]; ok {
 			req.URL.RawQuery = x[0]
+		} else {
+			req.URL.RawQuery = r.URL.RawQuery
 		}
 		proxyGemini(req, false, root, w, r)
 	}))

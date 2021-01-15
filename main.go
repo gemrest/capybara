@@ -382,8 +382,7 @@ type GemtextHeading struct {
 func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	w http.ResponseWriter, r *http.Request) {
 	client := gemini.Client{
-		Timeout:           30 * time.Second,
-		InsecureSkipTrust: true,
+		Timeout: 30 * time.Second,
 	}
 
 	if h := (url.URL{Host: req.Host}); h.Port() == "" {
@@ -529,7 +528,7 @@ func main() {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte("Bad request"))
 			} else {
-				w.Header().Add("Location", "?" + q[0])
+				w.Header().Add("Location", "?"+q[0])
 				w.WriteHeader(http.StatusFound)
 				w.Write([]byte("Redirecting"))
 			}

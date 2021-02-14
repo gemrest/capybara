@@ -12,12 +12,15 @@ Geminispace, but it defaults to a specific domain.
 
 ```
 $ go build
-$ ./kineto [-b 127.0.0.1:8080] gemini://example.org
+$ ./kineto [-b 127.0.0.1:8080] [-s style.css] gemini://example.org
 ```
 
 The -b argument is optional and allows you to bind to an arbitrary address; by
 default kineto will bind to `:8080`. You should set up some external reverse
 proxy like nginx to forward traffic to this port and add TLS.
+
+The -s argument is optional and allows you to specify a custom CSS file. By
+default kineto will serve its built-in style.
 
 ## "kineto"?
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"log"
 	"mime"
 	"net/http"
@@ -324,7 +325,7 @@ dl dt:not(:first-child) {
 	pre {
 		background-color: #222;
 	}
-	
+
 	a {
 		color: #0087BD;
 	}
@@ -380,7 +381,7 @@ type GemtextHeading struct {
 }
 
 func proxyGemini(req gemini.Request, external bool, root *url.URL,
-	w http.ResponseWriter, r *http.Request) {
+	w http.ResponseWriter, r *http.Request, css string) {
 	client := gemini.Client{
 		Timeout: 30 * time.Second,
 	}
@@ -401,7 +402,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	case 10, 11:
 		w.Header().Add("Content-Type", "text/html")
 		err = inputPage.Execute(w, &InputContext{
-			CSS:    defaultCSS,
+			CSS:    css,
 			Prompt: resp.Meta,
 			Secret: resp.Status == 11,
 			URL:    req.URL,
@@ -469,7 +470,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 
 	w.Header().Add("Content-Type", "text/html")
 	ctx := &GemtextContext{
-		CSS:      defaultCSS,
+		CSS:      css,
 		External: external,
 		Resp:     resp,
 		Title:    req.URL.Host + " " + req.URL.Path,
@@ -499,9 +500,10 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 func main() {
 	var (
 		bind string = ":8080"
+		css string = defaultCSS
 	)
 
-	opts, optind, err := getopt.Getopts(os.Args, "b:c:")
+	opts, optind, err := getopt.Getopts(os.Args, "b:c:s:")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -509,8 +511,15 @@ func main() {
 		switch opt.Option {
 		case 'b':
 			bind = opt.Value
-		}
+		case 's':
+			cssContent, err := ioutil.ReadFile(opt.Value)
+			if (err == nil) {
+				css = string(cssContent)
+			} else {
+				log.Fatalf("Error opening custom CSS from '%s': %v", opt.Value, err)
+			}
 	}
+}
 
 	args := os.Args[optind:]
 	if len(args) != 1 {
@@ -555,7 +564,7 @@ func main() {
 		req.URL.Path = r.URL.Path
 		req.Host = root.Host
 		req.URL.RawQuery = r.URL.RawQuery
-		proxyGemini(req, false, root, w, r)
+		proxyGemini(req, false, root, w, r, css)
 	}))
 
 	http.Handle("/x/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -578,7 +587,7 @@ func main() {
 		}
 		req.Host = path[2]
 		log.Printf("%s (external) %s%s", r.Method, path[2], path[3])
-		proxyGemini(req, true, root, w, r)
+		proxyGemini(req, true, root, w, r, css)
 	}))
 
 	log.Printf("HTTP server listening on %s", bind)

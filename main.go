@@ -426,10 +426,10 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 			w.Write([]byte(fmt.Sprintf("This page is redirecting you to %s", next.String())))
 			return
 		}
-		next.Host = r.URL.Host
 		if external {
 			next.Path = fmt.Sprintf("/x/%s/%s", next.Host, next.Path)
 		}
+		next.Host = r.URL.Host
 		next.Scheme = r.URL.Scheme
 		w.Header().Add("Location", next.String())
 		w.WriteHeader(http.StatusFound)

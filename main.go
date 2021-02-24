@@ -131,7 +131,7 @@ var gemtextPage = template.Must(template.
 </style>
 {{- end }}
 <title>{{.Title}}</title>
-<article>
+<article{{if .Lang}} lang="{{.Lang}}"{{end}}>
 	{{ $ctx := . -}}
 	{{- $isList := false -}}
 	{{- range .Lines -}}
@@ -364,6 +364,7 @@ type GemtextContext struct {
 	Pre      int
 	Resp     *gemini.Response
 	Title    string
+	Lang     string
 	URL      *url.URL
 	Root     *url.URL
 }
@@ -476,12 +477,15 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 		}
 	}
 
+	lang := params["lang"]
+
 	w.Header().Add("Content-Type", "text/html")
 	ctx := &GemtextContext{
 		CSS:      css,
 		External: external,
 		Resp:     resp,
 		Title:    req.URL.Host + " " + req.URL.Path,
+		Lang:     lang,
 		URL:      req.URL,
 		Root:     root,
 	}

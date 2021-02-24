@@ -453,8 +453,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 		return
 	}
 
-	// XXX: We could use the params I guess
-	m, _, err := mime.ParseMediaType(resp.Meta)
+	m, params, err := mime.ParseMediaType(resp.Meta)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		w.Write([]byte(fmt.Sprintf("Gateway error: %d %s: %v",
@@ -466,6 +465,15 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 		w.Header().Add("Content-Type", resp.Meta)
 		io.Copy(w, resp.Body)
 		return
+	}
+
+	if charset, ok := params["charset"]; ok {
+		charset = strings.ToLower(charset)
+		if charset != "utf-8" {
+			w.WriteHeader(http.StatusNotImplemented)
+			fmt.Fprintf(w, "Unsupported charset: %s", charset)
+			return
+		}
 	}
 
 	w.Header().Add("Content-Type", "text/html")

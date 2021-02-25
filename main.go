@@ -579,6 +579,19 @@ func main() {
 	}))
 
 	http.Handle("/x/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			r.ParseForm()
+			if q, ok := r.Form["q"]; !ok {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Bad request"))
+			} else {
+				w.Header().Add("Location", "?"+q[0])
+				w.WriteHeader(http.StatusFound)
+				w.Write([]byte("Redirecting"))
+			}
+			return
+		}
+
 		if r.Method != "GET" {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			w.Write([]byte("404 Not found"))
@@ -590,14 +603,13 @@ func main() {
 			path = append(path, "")
 		}
 		req := gemini.Request{}
-		req.URL, err = url.Parse(fmt.Sprintf("gemini://%s/%s", path[2], path[3]))
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf("Error: %v", err)))
-			return
-		}
+		req.URL = &url.URL{}
+		req.URL.Scheme = "gemini"
+		req.URL.Host = path[2]
+		req.URL.Path = "/" + path[3]
 		req.Host = path[2]
-		log.Printf("%s (external) %s%s", r.Method, path[2], path[3])
+		req.URL.RawQuery = r.URL.RawQuery
+		log.Printf("%s (external) %s%s", r.Method, r.URL.Host, r.URL.Path)
 		proxyGemini(req, true, root, w, r, css)
 	}))
 

@@ -419,12 +419,12 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 		to, err := url.Parse(resp.Meta)
 		if err != nil {
 			w.WriteHeader(http.StatusBadGateway)
-			w.Write([]byte(fmt.Sprintf("Gateway error: bad redirect %v", err)))
+			fmt.Fprintf(w, "Gateway error: bad redirect: %v", err)
 		}
 		next := req.URL.ResolveReference(to)
 		if next.Scheme != "gemini" {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf("This page is redirecting you to %s", next.String())))
+			fmt.Fprintf(w, "This page is redirecting you to %s", next)
 			return
 		}
 		if external {
@@ -434,7 +434,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 		next.Scheme = r.URL.Scheme
 		w.Header().Add("Location", next.String())
 		w.WriteHeader(http.StatusFound)
-		w.Write([]byte("Redirecting to " + next.String()))
+		fmt.Fprintf(w, "Redirecting to %s", next)
 		return
 	case 40, 41, 42, 43, 44:
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -457,8 +457,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	m, params, err := mime.ParseMediaType(resp.Meta)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
-		w.Write([]byte(fmt.Sprintf("Gateway error: %d %s: %v",
-			resp.Status, resp.Meta, err)))
+		fmt.Fprintf(w, "Gateway error: %d %s: %v", resp.Status, resp.Meta, err)
 		return
 	}
 
@@ -512,7 +511,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 func main() {
 	var (
 		bind string = ":8080"
-		css string = defaultCSS
+		css  string = defaultCSS
 	)
 
 	opts, optind, err := getopt.Getopts(os.Args, "b:c:s:")
@@ -525,13 +524,13 @@ func main() {
 			bind = opt.Value
 		case 's':
 			cssContent, err := ioutil.ReadFile(opt.Value)
-			if (err == nil) {
+			if err == nil {
 				css = string(cssContent)
 			} else {
 				log.Fatalf("Error opening custom CSS from '%s': %v", opt.Value, err)
 			}
+		}
 	}
-}
 
 	args := os.Args[optind:]
 	if len(args) != 1 {

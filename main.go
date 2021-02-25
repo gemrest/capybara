@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"io"
@@ -383,15 +384,12 @@ type GemtextHeading struct {
 
 func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	w http.ResponseWriter, r *http.Request, css string) {
-	client := gemini.Client{
-		Timeout: 30 * time.Second,
-	}
 
-	if h := (url.URL{Host: req.Host}); h.Port() == "" {
-		req.Host += ":1965"
-	}
+	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	defer cancel()
 
-	resp, err := client.Do(&req)
+	client := gemini.Client{}
+	resp, err := client.Do(ctx, &req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		fmt.Fprintf(w, "Gateway error: %v", err)
@@ -479,7 +477,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	lang := params["lang"]
 
 	w.Header().Add("Content-Type", "text/html")
-	ctx := &GemtextContext{
+	gemctx := &GemtextContext{
 		CSS:      css,
 		External: external,
 		Resp:     resp,
@@ -491,16 +489,16 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 
 	var title bool
 	gemini.ParseLines(resp.Body, func(line gemini.Line) {
-		ctx.Lines = append(ctx.Lines, line)
+		gemctx.Lines = append(gemctx.Lines, line)
 		if !title {
 			if h, ok := line.(gemini.LineHeading1); ok {
-				ctx.Title = string(h)
+				gemctx.Title = string(h)
 				title = true
 			}
 		}
 	})
 
-	err = gemtextPage.Execute(w, ctx)
+	err = gemtextPage.Execute(w, gemctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "%v", err)
@@ -573,7 +571,6 @@ func main() {
 		req.URL.Scheme = root.Scheme
 		req.URL.Host = root.Host
 		req.URL.Path = r.URL.Path
-		req.Host = root.Host
 		req.URL.RawQuery = r.URL.RawQuery
 		proxyGemini(req, false, root, w, r, css)
 	}))
@@ -607,7 +604,6 @@ func main() {
 		req.URL.Scheme = "gemini"
 		req.URL.Host = path[2]
 		req.URL.Path = "/" + path[3]
-		req.Host = path[2]
 		req.URL.RawQuery = r.URL.RawQuery
 		log.Printf("%s (external) %s%s", r.Method, r.URL.Host, r.URL.Path)
 		proxyGemini(req, true, root, w, r, css)

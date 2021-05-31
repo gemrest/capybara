@@ -127,9 +127,13 @@ var gemtextPage = template.Must(template.
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 {{- if .CSS }}
+{{- if .ExternalCSS }}
+<link rel="stylesheet" type="text/css" href="{{.CSS | safeCSS}}">
+{{- else }}
 <style>
 {{.CSS | safeCSS}}
 </style>
+{{- end }}
 {{- end }}
 <title>{{.Title}}</title>
 <article{{if .Lang}} lang="{{.Lang}}"{{end}}>
@@ -229,9 +233,13 @@ var inputPage = template.Must(template.
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 {{- if .CSS }}
+{{- if .ExternalCSS }}
+<link rel="stylesheet" type="text/css" href="{{.CSS | safeCSS}}">
+{{- else }}
 <style>
 {{.CSS | safeCSS}}
 </style>
+{{- end }}
 {{- end }}
 <title>{{.Prompt}}</title>
 <form method="POST">
@@ -359,22 +367,24 @@ input:focus {
 `
 
 type GemtextContext struct {
-	CSS      string
-	External bool
-	Lines    []gemini.Line
-	Pre      int
-	Resp     *gemini.Response
-	Title    string
-	Lang     string
-	URL      *url.URL
-	Root     *url.URL
+	CSS         string
+	ExternalCSS bool
+	External    bool
+	Lines       []gemini.Line
+	Pre         int
+	Resp        *gemini.Response
+	Title       string
+	Lang        string
+	URL         *url.URL
+	Root        *url.URL
 }
 
 type InputContext struct {
-	CSS    string
-	Prompt string
-	Secret bool
-	URL    *url.URL
+	CSS         string
+	ExternalCSS bool
+	Prompt      string
+	Secret      bool
+	URL         *url.URL
 }
 
 type GemtextHeading struct {
@@ -383,7 +393,7 @@ type GemtextHeading struct {
 }
 
 func proxyGemini(req gemini.Request, external bool, root *url.URL,
-	w http.ResponseWriter, r *http.Request, css string) {
+	w http.ResponseWriter, r *http.Request, css string, externalCSS bool) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 	defer cancel()
@@ -401,10 +411,11 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	case 10, 11:
 		w.Header().Add("Content-Type", "text/html")
 		err = inputPage.Execute(w, &InputContext{
-			CSS:    css,
-			Prompt: resp.Meta,
-			Secret: resp.Status == 11,
-			URL:    req.URL,
+			CSS:         css,
+			ExternalCSS: externalCSS,
+			Prompt:      resp.Meta,
+			Secret:      resp.Status == 11,
+			URL:         req.URL,
 		})
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -478,13 +489,14 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 
 	w.Header().Add("Content-Type", "text/html")
 	gemctx := &GemtextContext{
-		CSS:      css,
-		External: external,
-		Resp:     resp,
-		Title:    req.URL.Host + " " + req.URL.Path,
-		Lang:     lang,
-		URL:      req.URL,
-		Root:     root,
+		CSS:         css,
+		ExternalCSS: externalCSS,
+		External:    external,
+		Resp:        resp,
+		Title:       req.URL.Host + " " + req.URL.Path,
+		Lang:        lang,
+		URL:         req.URL,
+		Root:        root,
 	}
 
 	var title bool
@@ -508,11 +520,12 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 
 func main() {
 	var (
-		bind string = ":8080"
-		css  string = defaultCSS
+		bind     string = ":8080"
+		css      string = defaultCSS
+		external bool   = false
 	)
 
-	opts, optind, err := getopt.Getopts(os.Args, "b:c:s:")
+	opts, optind, err := getopt.Getopts(os.Args, "b:c:s:e:")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -521,12 +534,16 @@ func main() {
 		case 'b':
 			bind = opt.Value
 		case 's':
+			external = false
 			cssContent, err := ioutil.ReadFile(opt.Value)
 			if err == nil {
 				css = string(cssContent)
 			} else {
 				log.Fatalf("Error opening custom CSS from '%s': %v", opt.Value, err)
 			}
+		case 'e':
+			external = true
+			css = opt.Value
 		}
 	}
 
@@ -572,7 +589,7 @@ func main() {
 		req.URL.Host = root.Host
 		req.URL.Path = r.URL.Path
 		req.URL.RawQuery = r.URL.RawQuery
-		proxyGemini(req, false, root, w, r, css)
+		proxyGemini(req, false, root, w, r, css, external)
 	}))
 
 	http.Handle("/x/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -606,7 +623,7 @@ func main() {
 		req.URL.Path = "/" + path[3]
 		req.URL.RawQuery = r.URL.RawQuery
 		log.Printf("%s (external) %s%s", r.Method, r.URL.Host, r.URL.Path)
-		proxyGemini(req, true, root, w, r, css)
+		proxyGemini(req, true, root, w, r, css, external)
 	}))
 
 	log.Printf("HTTP server listening on %s", bind)

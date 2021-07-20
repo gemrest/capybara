@@ -518,6 +518,12 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 	}
 }
 
+func bindIfEnv(key string, do func()) {
+	if len(os.Getenv(key)) != 0 {
+		do()
+	}
+}
+
 func main() {
 	var (
 		bind     string = ":8080"
@@ -529,6 +535,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	bindIfEnv("BIND", func() {
+		bind = os.Getenv("BIND")
+	})
+	bindIfEnv("CSS", func() {
+		external = false
+		cssContent, err := ioutil.ReadFile(os.Getenv("CSS"))
+		if err == nil {
+			css = string(cssContent)
+		} else {
+			log.Fatalf("Error opening custom CSS from '%s': %v", os.Getenv("CSS"), err)
+		}
+	})
+	bindIfEnv("CSS_EXTERNAL", func() {
+		external = true
+		css = os.Getenv("CSS_EXTERNAL")
+	})
+
 	for _, opt := range opts {
 		switch opt.Option {
 		case 'b':
@@ -548,10 +572,21 @@ func main() {
 	}
 
 	args := os.Args[optind:]
+	var (
+		envRoot string
+		root    *url.URL
+	)
 	if len(args) != 1 {
-		log.Fatalf("Usage: %s <gemini root>", os.Args[0])
+		envRoot = os.Getenv("ROOT")
+		if len(envRoot) == 0 {
+			log.Fatalf("Usage: %s <gemini root>", os.Args[0])
+		}
+	} else {
+		root, err = url.Parse(args[0])
 	}
-	root, err := url.Parse(args[0])
+	if len(envRoot) != 0 {
+		root, err = url.Parse(envRoot)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}

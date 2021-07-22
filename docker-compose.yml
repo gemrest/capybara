@@ -3,6 +3,11 @@
 version: "3.3"
 services:
   capybara:
+    environment:
+      ROOT: "gemini://fuwn.space" # Required
+      # BIND: ":8080" # Optional
+      # CSS: "style.css" # Optional
+      # CSS_EXTERNAL: "https://distrotube.com/css/style.css" # Optional
     ports:
       - "8080:8080"
     image: fuwn/capybara

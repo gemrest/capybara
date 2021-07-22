@@ -215,7 +215,7 @@ var gemtextPage = template.Must(template.
 		<dt>Meta</dt>
 		<dd>{{.Resp.Meta}}</dd>
 		<dt>Proxied by</dt>
-		<dd><a href="https://sr.ht/~sircmpwn/kineto">kineto</a></dd>
+		<dd><a href="https://github.com/fuwn/capybara">Capybara</a></dd>
 	</dl>
 	<p>Be advised that no attempt was made to verify the remote SSL certificate.
 </details>

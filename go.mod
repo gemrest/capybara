@@ -1,4 +1,4 @@
-module git.sr.ht/~sircmpwn/kineto
+module github.com/fuwn/capybara
 
 go 1.15
 

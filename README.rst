@@ -39,6 +39,22 @@ body in a :code:`<style>` block like with the -s flag. The given stylesheet can
 be a relative link, for instance :code:`-e /main.css` will serve
 :code:`main.css` from the root of the proxied Gemini capsule.
 
+Docker
+------
+
+.. code-block:: shell
+
+  $ docker run -d [-b BIND='127.0.0.1:8080'] [-s CSS='style.css'] [-e CSS_EXTERNAL='style.css'] fuwn/capybara
+
+Docker Compose
+--------------
+
+Edit the :code:`docker-compose.yml` file to your liking, then...
+
+.. code-block:: shell
+
+  $ docker-compose up -d
+
 License
 ~~~~~~~
 

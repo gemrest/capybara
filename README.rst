@@ -17,6 +17,10 @@ Capybara is an `HTTP <https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol>
 to `Gemini <https://gemini.circumlunar.space/>`__ proxy designed to ... proxy ...
 Gemini capsules over to HTTP.
 
+Capybara also happens to be a fork of `Kineto <https://sr.ht/~sircmpwn/kineto/>`__. If you
+think you don't need any of the modern day enhancements that Capybara offers, check out
+Kineto for a more bare, raw-er experience.
+
 Usage
 -----
 

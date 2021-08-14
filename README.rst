@@ -1,6 +1,18 @@
 Capybara
 ========
 
+.. raw:: html
+
+  <a href="https://github.com/fuwn/capybara">
+    <img
+      src="https://raw.githubusercontent.com/fuwn/capybara/main/assets/Capybara_Logo_1000x1000.png"
+      alt="Whirl"
+      width="220">
+  </a>
+  
+Synopsis
+--------
+
 This is an `HTTP <https://en.wikipedia.org/wiki/Hypertext_Transfer_Protocol>`__
 to `Gemini <https://gemini.circumlunar.space/>`__ proxy designed to provide
 service for a single domain, i.e. to make your Gemini site available over HTTP.

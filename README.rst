@@ -6,7 +6,7 @@ Capybara
   <a href="https://github.com/fuwn/capybara">
     <img
       src="https://raw.githubusercontent.com/fuwn/capybara/main/assets/Capybara_Logo_1000x1000.png"
-      alt="Whirl"
+      alt="Capybara"
       width="220">
   </a>
   

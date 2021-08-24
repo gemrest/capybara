@@ -1,5 +1,3 @@
-# NOTE: There is no official Capybara Docker image *yet*.
-
 version: "3.3"
 services:
   capybara:

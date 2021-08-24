@@ -108,7 +108,7 @@ var gemtextPage = template.Must(template.
 
 			if u.Scheme == "" || u.Scheme == "gemini" {
 				if u.Host != ctx.Root.Host {
-					u.Path = fmt.Sprintf("/x/%s%s", u.Host, u.Path)
+					u.Path = fmt.Sprintf("/proxy/%s%s", u.Host, u.Path)
 				}
 				u.Scheme = ""
 				u.Host = ""
@@ -437,7 +437,7 @@ func proxyGemini(req gemini.Request, external bool, root *url.URL,
 			return
 		}
 		if external {
-			next.Path = fmt.Sprintf("/x/%s/%s", next.Host, next.Path)
+			next.Path = fmt.Sprintf("/proxy/%s/%s", next.Host, next.Path)
 		}
 		next.Host = r.URL.Host
 		next.Scheme = r.URL.Scheme
@@ -627,7 +627,7 @@ func main() {
 		proxyGemini(req, false, root, w, r, css, external)
 	}))
 
-	http.Handle("/x/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	http.Handle("/proxy/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
 			r.ParseForm()
 			if q, ok := r.Form["q"]; !ok {

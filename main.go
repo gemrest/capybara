@@ -583,6 +583,12 @@ func main() {
 			return
 		}
 
+		if r.URL.Path == "/robots.txt" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("User-agent: *\nDisallow: /\n"))
+			return
+		}
+
 		req := gemini.Request{}
 		req.URL = &url.URL{}
 		req.URL.Scheme = root.Scheme

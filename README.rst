@@ -27,7 +27,7 @@ Usage
 .. code-block:: shell
 
   $ go build
-  $ ./capybara [-b 127.0.0.1:8080] [-s style.css] [-e style.css] gemini://fuwn.space
+  $ ./capybara [-b 127.0.0.1:8080] [-s style.css] [-e style.css] gemini://fuwn.me
 
 :code:`-b` (:code:`BIND`)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,7 +58,7 @@ Docker
 
 .. code-block:: shell
 
-  $ docker run -d -e ROOT='gemini://fuwn.space' [-e BIND='127.0.0.1:8080'] [-e CSS='style.css'] [-e CSS_EXTERNAL='style.css'] fuwn/capybara
+  $ docker run -d -e ROOT='gemini://fuwn.me' [-e BIND='127.0.0.1:8080'] [-e CSS='style.css'] [-e CSS_EXTERNAL='style.css'] fuwn/capybara
 
 Docker Compose
 --------------

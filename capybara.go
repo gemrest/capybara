@@ -526,9 +526,9 @@ func performIfEnv(key string, do func()) {
 
 func main() {
 	var (
-		bind     string = ":8080"
-		css      string = defaultCSS
-		external bool   = false
+		bind     = ":8080"
+		css      = defaultCSS
+		external = false
 	)
 
 	opts, optind, err := getopt.Getopts(os.Args, "b:c:s:e:")

@@ -102,7 +102,7 @@ var gemtextPage = template.Must(template.
 		"url": func(ctx *GemtextContext, s string) template.URL {
 			u, err := url.Parse(s)
 			if err != nil {
-				return template.URL("error")
+				return "error"
 			}
 			u = ctx.URL.ResolveReference(u)
 

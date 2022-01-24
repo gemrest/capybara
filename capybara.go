@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode"
 
 	"git.sr.ht/~adnano/go-gemini"
 	"git.sr.ht/~sircmpwn/getopt"
@@ -24,11 +25,11 @@ var gemtextPage = template.Must(template.
 		"heading": func(line gemini.Line) *GemtextHeading {
 			switch l := line.(type) {
 			case gemini.LineHeading1:
-				return &GemtextHeading{1, string(l)}
+				return &GemtextHeading{1, string(l), createAnchor(string(l))}
 			case gemini.LineHeading2:
-				return &GemtextHeading{2, string(l)}
+				return &GemtextHeading{2, string(l), createAnchor(string(l))}
 			case gemini.LineHeading3:
-				return &GemtextHeading{3, string(l)}
+				return &GemtextHeading{3, string(l), createAnchor(string(l))}
 			default:
 				return nil
 			}
@@ -147,7 +148,7 @@ var gemtextPage = template.Must(template.
 
 	{{- with . | heading }}
 	{{- $isList = false -}}
-	<h{{.Level}}>{{.Text}}</h{{.Level}}>
+	<h{{.Level}} id="{{.Anchor}}">{{.Text}}</h{{.Level}}>
 	{{- end -}}
 
 	{{- with . | link }}
@@ -388,8 +389,24 @@ type InputContext struct {
 }
 
 type GemtextHeading struct {
-	Level int
-	Text  string
+	Level  int
+	Text   string
+	Anchor string
+}
+
+func createAnchor(heading string) string {
+	var anchor strings.Builder
+	prev := '-'
+	for _, c := range heading {
+		if unicode.IsLetter(c) || unicode.IsDigit(c) {
+			anchor.WriteRune(unicode.ToLower(c))
+			prev = c
+		} else if (unicode.IsSpace(c) || c == '-') && prev != '-' {
+			anchor.WriteRune('-')
+			prev = '-'
+		}
+	}
+	return strings.ToLower(anchor.String())
 }
 
 func proxyGemini(req gemini.Request, external bool, root *url.URL,
@@ -615,6 +632,12 @@ func main() {
 		if r.URL.Path == "/favicon.ico" {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("404 Not found"))
+			return
+		}
+
+		if r.URL.Path == "/robots.txt" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("User-agent: *\nDisallow: /\n"))
 			return
 		}
 

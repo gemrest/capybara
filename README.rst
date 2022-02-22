@@ -69,6 +69,25 @@ Edit the :code:`docker-compose.yml` file to your liking, then...
 
   $ docker-compose up -d
 
+Configuration
+-------------
+
+Capybara allows the optional usage of a :code:`Capybara.yaml` file for simple configuration, here is the format:
+
+.. code-block:: yaml
+
+  capybara:
+    keep_gemini: # A list of hosts where if the host is present; the URL will not be proxied
+      - fuwn.me  #
+                 # Example:
+                 #   Proxied: `gemini://gem.rest` becomes `/proxy/gem.rest`
+                 #   Not proxied (present in `capybara.keep_gemini`): `gemini://gem.rest` is kept
+
+The configuration file can be located in three different places relative to Capybara:
+
+- Docker Compose: :code:`./capybara-data/`
+- Local: :code:`./` (same directory as the Capybara executable), :code:`./capybara/`, or :code:`./capybara-data/`
+
 License
 ~~~~~~~
 

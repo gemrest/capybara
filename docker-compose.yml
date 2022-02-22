@@ -8,4 +8,6 @@ services:
       # CSS_EXTERNAL: "https://distrotube.com/css/style.css" # Optional
     ports:
       - "8080:8080"
+    volumes:
+      - ./.capybara-data/:/app/.capybara/
     image: fuwn/capybara

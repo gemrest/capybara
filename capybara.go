@@ -17,7 +17,23 @@ import (
 
 	"git.sr.ht/~adnano/go-gemini"
 	"git.sr.ht/~sircmpwn/getopt"
+	"github.com/spf13/viper"
 )
+
+var keepGeminiLinks []string
+
+func init() {
+	viper.SetConfigName("Capybara.yaml")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./")
+	viper.AddConfigPath(".capybara/")
+	viper.AddConfigPath(".capybara-data/")
+	viper.AddConfigPath("/app/.capybara/")
+
+	if err := viper.ReadInConfig(); err == nil {
+		keepGeminiLinks = viper.GetStringSlice("capybara.keep_gemini")
+	}
+}
 
 var gemtextPage = template.Must(template.
 	New("gemtext").
@@ -108,11 +124,20 @@ var gemtextPage = template.Must(template.
 			u = ctx.URL.ResolveReference(u)
 
 			if u.Scheme == "" || u.Scheme == "gemini" {
-				if u.Host != ctx.Root.Host {
-					u.Path = fmt.Sprintf("/proxy/%s%s", u.Host, u.Path)
+				keepGemini := false
+				for _, v := range keepGeminiLinks {
+					if v == u.Host {
+						keepGemini = true
+					}
 				}
-				u.Scheme = ""
-				u.Host = ""
+
+				if !keepGemini {
+					if u.Host != ctx.Root.Host {
+						u.Path = fmt.Sprintf("/proxy/%s%s", u.Host, u.Path)
+					}
+					u.Scheme = ""
+					u.Host = ""
+				}
 			}
 			return template.URL(u.String())
 		},

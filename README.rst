@@ -3,9 +3,9 @@ Capybara
 
 .. raw:: html
 
-  <a href="https://github.com/fuwn/capybara">
+  <a href="https://github.com/gemrest/capybara">
     <img
-      src="https://raw.githubusercontent.com/fuwn/capybara/main/assets/Capybara_Logo_1000x1000.png"
+      src="https://raw.githubusercontent.com/gemrest/capybara/main/assets/Capybara_Logo_1000x1000.png"
       alt="Capybara"
       width="220">
   </a>

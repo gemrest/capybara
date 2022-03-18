@@ -1,2 +1,6 @@
 # IDE
-/.idea/
+.idea/
+
+# Artifacts
+capybara
+*.exe

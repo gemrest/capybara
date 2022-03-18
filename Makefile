@@ -1,8 +1,10 @@
+MODULE := github.com/gemrest/capybara
+
 fmt:
-	go fmt github.com/gemrest/capybara...
+	go fmt $(MODULE)...
 
 run: fmt
-	go run github.com/gemrest/capybara
+	go run $(MODULE)
 
 build: fmt
 	go build

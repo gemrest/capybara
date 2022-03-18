@@ -1,4 +1,4 @@
-module github.com/fuwn/capybara
+module github.com/gemrest/capybara
 
 go 1.15
 

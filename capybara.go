@@ -21,6 +21,7 @@ import (
 )
 
 var keepGeminiLinks []string
+var keepGeminiExactLinks []string
 
 func init() {
 	viper.SetConfigName("Capybara.yaml")
@@ -32,6 +33,7 @@ func init() {
 
 	if err := viper.ReadInConfig(); err == nil {
 		keepGeminiLinks = viper.GetStringSlice("capybara.keep_gemini")
+		keepGeminiExactLinks = viper.GetStringSlice("capybara.keep_gemini_exact")
 	}
 }
 
@@ -125,8 +127,15 @@ var gemtextPage = template.Must(template.
 
 			if u.Scheme == "" || u.Scheme == "gemini" {
 				keepGemini := false
+
 				for _, v := range keepGeminiLinks {
 					if v == u.Host {
+						keepGemini = true
+					}
+				}
+
+				for _, v := range keepGeminiExactLinks {
+					if "gemini://"+v == u.String() {
 						keepGemini = true
 					}
 				}

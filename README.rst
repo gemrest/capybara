@@ -83,6 +83,9 @@ Capybara allows the optional usage of a :code:`Capybara.yaml` file for simple co
                  #   Proxied: `gemini://gem.rest` becomes `/proxy/gem.rest`
                  #   Not proxied (present in `capybara.keep_gemini`): `gemini://gem.rest` is kept
 
+    keep_gemini_exact: # A list of URLs where if the URL is present; the URL will not be proxied
+      - fuwn.me/skills #
+                       # Similar to `keep_gemini` except only keeps exact URLs
 The configuration file can be located in three different places relative to Capybara:
 
 - Docker Compose: :code:`./capybara-data/`

@@ -1,3 +1,12 @@
+NOTICE
+======
+
+Capybara is no longer in active development! It is advised to switch over to
+`September <https://github.com/gemrest/september>`_!
+
+September's configuration (and experience) is nearly identical to Capybara's, so
+switching over should be no hassle.
+
 Capybara
 ========
 
@@ -9,7 +18,7 @@ Capybara
       alt="Capybara"
       width="220">
   </a>
-  
+
 Synopsis
 --------
 
